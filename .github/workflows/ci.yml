@@ -1,0 +1,19 @@
+name: ci
+on: [push, pull_request, workflow_dispatch]
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: pip install -e ".[dev]"
+      - run: pytest -q
+      # Three permit narratives through the loop (one takes three rounds), each graded.
+      - run: python -m redlinegate seed data
+      - run: python -m redlinegate run data --out out/jobs
+      - run: python -m redlinegate check-dir out/jobs
+      - run: python -m redlinegate anchors data
+      # The refusal is the assertion: every counterexample MUST fail, each for its own rule.
+      - run: python -m redlinegate counterexamples out/cx --data out/cx-data
+      - run: "! python -m redlinegate check-dir out/cx"
